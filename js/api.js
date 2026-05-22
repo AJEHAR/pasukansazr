@@ -23,7 +23,7 @@
 // ┌─────────────────────────────────────────────────────────┐
 // │  ⚙️  TUKAR URL INI DENGAN DEPLOYMENT URL ANDA           │
 // └─────────────────────────────────────────────────────────┘
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbwQgAWOGrNwVRetQEHCnUsjFnXCR6dIpz3_sqqaiOQXNXJRMDXoBa0VRoXPUc01sGSvaw/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo3198P2Um96-L3xymCYhimzj5uGCIOmzkRHVdXgE8fuuM-lA/exec';
 
 // Contoh:
 // var GAS_URL = 'https://script.google.com/macros/s/AKfycbwQgAWO.../exec';
