@@ -1,35 +1,29 @@
 // ============================================================
-//  SAZR Pasukan — api.js  (v2.2 — JSONP Edition)
+//  SAZR Pasukan — api.js  (v3.0 — Cloudflare Worker Edition)
 //
-//  FIX CORS SEBENAR: Guna JSONP (<script> tag) bukannya fetch()
-//
-//  Kenapa JSONP?
-//  ┌───────────────────────────────────────────────────────┐
-//  │  fetch()       → 302 (tiada CORS header) → BLOCK ✗   │
-//  │  <script src=> → tiada CORS restriction  → OK ✓      │
-//  └───────────────────────────────────────────────────────┘
-//
-//  Cara kerja JSONP:
-//  1. api.js cipta <script src="GAS_URL?callback=_fn123&body=BASE64">
-//  2. Browser load script itu (tiada CORS check untuk script tag)
-//  3. Apps Script balas:  _fn123({"status":"OK",...});
-//  4. Browser execute → _fn123() dipanggil → successHandler runs
+//  Penyelesaian KEKAL: hantar request ke Cloudflare Worker
+//  Worker forward ke Apps Script (server-to-server, tiada CORS)
 //
 //  ─── KONFIGURASI ──────────────────────────────────────────
-//  Tukar GAS_URL dengan URL deployment Apps Script anda.
+//  Tukar PROXY_URL dengan URL Cloudflare Worker anda.
+//  Dapatkan URL dari: Cloudflare Dashboard → Workers → worker anda
+//  Format: https://sazr-proxy.NAMAKAMU.workers.dev
 // ============================================================
 
 // ┌─────────────────────────────────────────────────────────┐
-// │  ⚙️  TUKAR URL INI DENGAN DEPLOYMENT URL ANDA           │
+// │  ⚙️  TUKAR URL INI DENGAN URL CLOUDFLARE WORKER ANDA    │
 // └─────────────────────────────────────────────────────────┘
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo3198P2Um96-L3xymCYhimzj5uGCIOmzkRHVdXgE8fuuM-lA/exec';
+var PROXY_URL = 'https://sazr-proxy.g-39150004.workers.dev';
+
+// Contoh:
+// var PROXY_URL = 'https://sazr-proxy.ajehar.workers.dev';
 
 
 // ─────────────────────────────────────────────────────────────
-(function (url) {
+(function (proxyUrl) {
   'use strict';
 
-  // Guard: dalam Apps Script native — skip
+  // Guard: dalam Apps Script native — tidak perlu shim
   if (
     typeof google !== 'undefined' &&
     google.script &&
@@ -40,88 +34,39 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
     return;
   }
 
-  if (!url || url.indexOf('TUKAR_ID_INI') !== -1) {
-    console.warn('[api.js] ⚠️  GAS_URL belum dikonfigurasi!');
+  if (!proxyUrl || proxyUrl.indexOf('NAMAKAMU') !== -1) {
+    console.warn(
+      '[api.js] ⚠️  PROXY_URL belum dikonfigurasi!\n' +
+      'Buka js/api.js dan tukar PROXY_URL dengan URL Cloudflare Worker anda.'
+    );
   }
 
 
   // ────────────────────────────────────────────────────────
-  //  _encodePayload(action, args)
-  //  JSON → UTF-8 → Base64 untuk dihantar dalam ?body=
-  // ────────────────────────────────────────────────────────
-  function _encodePayload(action, args) {
-    var json = JSON.stringify({ action: action, args: args });
-    // encodeURIComponent + unescape = cara encode UTF-8 ke byte string
-    // untuk btoa() yang hanya terima Latin-1
-    return btoa(unescape(encodeURIComponent(json)));
-  }
-
-
-  // ────────────────────────────────────────────────────────
-  //  _jsonpCall(action, args) → Promise
+  //  _apicall(action, args) → Promise
   //
-  //  Buat JSONP request:
-  //  1. Jana nama callback unik: _sazr_<timestamp>_<random>
-  //  2. Register window[callbackName] = resolve function
-  //  3. Inject <script src="URL?callback=name&body=base64">
-  //  4. Apps Script execute callback dengan data
-  //  5. Cleanup script tag dan global function
+  //  Hantar POST ke Cloudflare Worker.
+  //  Worker ada CORS header — tiada masalah CORS.
+  //  Worker forward ke Apps Script server-side.
   // ────────────────────────────────────────────────────────
-  function _jsonpCall(action, args) {
-    return new Promise(function (resolve, reject) {
-
-      // Nama callback unik — elak konflik panggilan serentak
-      var cbName = '_sazr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-
-      var script  = null;
-      var timeout = null;
-
-      // Cleanup: buang script tag dan global function
-      function _cleanup() {
-        clearTimeout(timeout);
-        if (script && script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-        try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
+  function _apiCall(action, args) {
+    return fetch(proxyUrl, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ action: action, args: args })
+    })
+    .then(function (response) {
+      if (!response.ok) {
+        throw new Error('HTTP ' + response.status + ' dari Worker');
       }
-
-      // Timeout 30 saat
-      timeout = setTimeout(function () {
-        _cleanup();
-        reject(new Error('Timeout — tiada response selepas 30 saat.'));
-      }, 30000);
-
-      // Register callback global
-      window[cbName] = function (data) {
-        _cleanup();
-        resolve(data);
-      };
-
-      // Bina URL: GAS_URL?callback=cbName&body=BASE64
-      var b64 = _encodePayload(action, args);
-      var src = url
-        + '?callback=' + encodeURIComponent(cbName)
-        + '&body='     + encodeURIComponent(b64);
-
-      // Inject script tag
-      script = document.createElement('script');
-      script.src   = src;
-      script.async = true;
-
-      script.onerror = function () {
-        _cleanup();
-        reject(new Error('Gagal load script dari Apps Script. Semak GAS_URL dan status deployment.'));
-      };
-
-      document.head.appendChild(script);
+      return response.json();
     });
   }
 
 
   // ────────────────────────────────────────────────────────
   //  _buatRunner()
-  //  Proxy untuk intercept google.script.run.xyz(args)
-  //  Guna _jsonpCall() dalaman
+  //  Proxy untuk google.script.run API
   // ────────────────────────────────────────────────────────
   function _buatRunner() {
     var _onSuccess = null;
@@ -146,14 +91,14 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
 
         if (prop === '_sazrShim') return true;
 
-        // ── Panggilan fungsi sebenar ─────────────────────
+        // ── Panggilan fungsi ─────────────────────────────
         return function () {
           var args       = Array.prototype.slice.call(arguments);
           var actionName = String(prop);
 
-          console.log('[api.js] ▶ JSONP: ' + actionName + '()', args.length ? args : '');
+          console.log('[api.js] ▶ ' + actionName + '()', args.length ? args : '');
 
-          _jsonpCall(actionName, args)
+          _apiCall(actionName, args)
             .then(function (data) {
               console.log('[api.js] ◀ ' + actionName + '()', data);
               if (_onSuccess) _onSuccess(data);
@@ -184,8 +129,8 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
           return _buatRunner();
         },
         url: {
-          getScriptUrl         : function () { return url; },
-          getActiveUserLocale  : function () { return 'ms'; }
+          getScriptUrl       : function () { return proxyUrl; },
+          getActiveUserLocale: function () { return 'ms'; }
         },
         history: {
           push   : function () {},
@@ -198,9 +143,9 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
     configurable: true
   });
 
-  console.log('[api.js] ✅ JSONP shim aktif');
-  console.log('[api.js] 🎯 Endpoint: ' + url);
+  console.log('[api.js] ✅ Proxy shim aktif (via Cloudflare Worker)');
+  console.log('[api.js] 🎯 Proxy: ' + proxyUrl);
 
 })(
-  (typeof window !== 'undefined' && window.GAS_URL) || GAS_URL
+  (typeof window !== 'undefined' && window.PROXY_URL) || PROXY_URL
 );
