@@ -1,23 +1,22 @@
 // ============================================================
-//  SAZR Pasukan — api.js  (v2.1 — CORS Fix Edition)
+//  SAZR Pasukan — api.js  (v2.2 — JSONP Edition)
 //
-//  FIX: Tukar POST → GET dengan payload Base64 dalam ?body=
+//  FIX CORS SEBENAR: Guna JSONP (<script> tag) bukannya fetch()
 //
-//  Kenapa ini fix CORS?
-//  ┌─────────────────────────────────────────────────────────┐
-//  │  POST → script.google.com → 302 (tiada CORS) → BLOCK ❌ │
-//  │  GET  → script.google.com → 302 → follow → CORS OK ✅   │
-//  └─────────────────────────────────────────────────────────┘
+//  Kenapa JSONP?
+//  ┌───────────────────────────────────────────────────────┐
+//  │  fetch()       → 302 (tiada CORS header) → BLOCK ✗   │
+//  │  <script src=> → tiada CORS restriction  → OK ✓      │
+//  └───────────────────────────────────────────────────────┘
 //
-//  Cara encode payload:
-//    JSON({action, args}) → UTF-8 bytes → Base64 → ?body=...
+//  Cara kerja JSONP:
+//  1. api.js cipta <script src="GAS_URL?callback=_fn123&body=BASE64">
+//  2. Browser load script itu (tiada CORS check untuk script tag)
+//  3. Apps Script balas:  _fn123({"status":"OK",...});
+//  4. Browser execute → _fn123() dipanggil → successHandler runs
 //
-//  Apps Script decode:
-//    Utilities.base64Decode() → Blob.getDataAsString('UTF-8') → JSON.parse()
-//
-//  ─── KONFIGURASI ────────────────────────────────────────────
+//  ─── KONFIGURASI ──────────────────────────────────────────
 //  Tukar GAS_URL dengan URL deployment Apps Script anda.
-//  Apps Script Editor → Deploy → Manage Deployments → URL (/exec)
 // ============================================================
 
 // ┌─────────────────────────────────────────────────────────┐
@@ -25,14 +24,8 @@
 // └─────────────────────────────────────────────────────────┘
 var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo3198P2Um96-L3xymCYhimzj5uGCIOmzkRHVdXgE8fuuM-lA/exec';
 
-// Contoh:
-// var GAS_URL = 'https://script.google.com/macros/s/AKfycbwQgAWO.../exec';
-
 
 // ─────────────────────────────────────────────────────────────
-//  Jangan ubah di bawah
-// ─────────────────────────────────────────────────────────────
-
 (function (url) {
   'use strict';
 
@@ -48,37 +41,87 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
   }
 
   if (!url || url.indexOf('TUKAR_ID_INI') !== -1) {
-    console.warn('[api.js] ⚠️  GAS_URL belum dikonfigurasi! Buka js/api.js dan isi URL deployment.');
+    console.warn('[api.js] ⚠️  GAS_URL belum dikonfigurasi!');
   }
 
 
   // ────────────────────────────────────────────────────────
   //  _encodePayload(action, args)
-  //
-  //  Encode payload untuk dihantar sebagai GET query param.
-  //
-  //  Steps:
-  //  1. JSON.stringify → string
-  //  2. encodeURIComponent → escape Unicode
-  //  3. unescape → byte string (hack untuk TextEncoder polyfill)
-  //  4. btoa() → Base64
-  //
-  //  Apps Script decode dengan:
-  //    Utilities.base64Decode() + Blob.getDataAsString('UTF-8')
+  //  JSON → UTF-8 → Base64 untuk dihantar dalam ?body=
   // ────────────────────────────────────────────────────────
   function _encodePayload(action, args) {
-    var jsonStr = JSON.stringify({ action: action, args: args });
-    // Encode Unicode → bytes yang boleh btoa() handle
-    var encoded = btoa(unescape(encodeURIComponent(jsonStr)));
-    return encoded;
+    var json = JSON.stringify({ action: action, args: args });
+    // encodeURIComponent + unescape = cara encode UTF-8 ke byte string
+    // untuk btoa() yang hanya terima Latin-1
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+
+
+  // ────────────────────────────────────────────────────────
+  //  _jsonpCall(action, args) → Promise
+  //
+  //  Buat JSONP request:
+  //  1. Jana nama callback unik: _sazr_<timestamp>_<random>
+  //  2. Register window[callbackName] = resolve function
+  //  3. Inject <script src="URL?callback=name&body=base64">
+  //  4. Apps Script execute callback dengan data
+  //  5. Cleanup script tag dan global function
+  // ────────────────────────────────────────────────────────
+  function _jsonpCall(action, args) {
+    return new Promise(function (resolve, reject) {
+
+      // Nama callback unik — elak konflik panggilan serentak
+      var cbName = '_sazr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+      var script  = null;
+      var timeout = null;
+
+      // Cleanup: buang script tag dan global function
+      function _cleanup() {
+        clearTimeout(timeout);
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
+      }
+
+      // Timeout 30 saat
+      timeout = setTimeout(function () {
+        _cleanup();
+        reject(new Error('Timeout — tiada response selepas 30 saat.'));
+      }, 30000);
+
+      // Register callback global
+      window[cbName] = function (data) {
+        _cleanup();
+        resolve(data);
+      };
+
+      // Bina URL: GAS_URL?callback=cbName&body=BASE64
+      var b64 = _encodePayload(action, args);
+      var src = url
+        + '?callback=' + encodeURIComponent(cbName)
+        + '&body='     + encodeURIComponent(b64);
+
+      // Inject script tag
+      script = document.createElement('script');
+      script.src   = src;
+      script.async = true;
+
+      script.onerror = function () {
+        _cleanup();
+        reject(new Error('Gagal load script dari Apps Script. Semak GAS_URL dan status deployment.'));
+      };
+
+      document.head.appendChild(script);
+    });
   }
 
 
   // ────────────────────────────────────────────────────────
   //  _buatRunner()
-  //
-  //  Sama seperti v2.0 tapi guna GET + ?body= bukannya POST.
-  //  Setiap akses pada google.script.run = runner baru.
+  //  Proxy untuk intercept google.script.run.xyz(args)
+  //  Guna _jsonpCall() dalaman
   // ────────────────────────────────────────────────────────
   function _buatRunner() {
     var _onSuccess = null;
@@ -103,47 +146,26 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
 
         if (prop === '_sazrShim') return true;
 
-        // ── Panggilan fungsi ─────────────────────────────
+        // ── Panggilan fungsi sebenar ─────────────────────
         return function () {
           var args       = Array.prototype.slice.call(arguments);
           var actionName = String(prop);
 
-          console.log('[api.js] ▶ ' + actionName + '()', args.length ? args : '');
+          console.log('[api.js] ▶ JSONP: ' + actionName + '()', args.length ? args : '');
 
-          // Encode payload → Base64
-          var b64;
-          try {
-            b64 = _encodePayload(actionName, args);
-          } catch (encErr) {
-            console.error('[api.js] ✗ Encode error:', encErr);
-            if (_onFailure) _onFailure(encErr);
-            return;
-          }
-
-          // GET request dengan ?body=BASE64
-          // GET tidak trigger preflight, redirect di-follow dengan betul
-          fetch(url + '?body=' + encodeURIComponent(b64), {
-            method : 'GET',
-            headers: { 'Accept': 'application/json' }
-          })
-          .then(function (response) {
-            if (!response.ok) {
-              throw new Error('HTTP ' + response.status + ' — ' + response.statusText);
-            }
-            return response.json();
-          })
-          .then(function (data) {
-            console.log('[api.js] ◀ ' + actionName + '()', data);
-            if (_onSuccess) _onSuccess(data);
-          })
-          .catch(function (err) {
-            console.error('[api.js] ✗ ' + actionName + '() RALAT:', err);
-            if (_onFailure) {
-              _onFailure(err);
-            } else {
-              console.warn('[api.js] (tiada withFailureHandler untuk ' + actionName + ')');
-            }
-          });
+          _jsonpCall(actionName, args)
+            .then(function (data) {
+              console.log('[api.js] ◀ ' + actionName + '()', data);
+              if (_onSuccess) _onSuccess(data);
+            })
+            .catch(function (err) {
+              console.error('[api.js] ✗ ' + actionName + '():', err.message);
+              if (_onFailure) {
+                _onFailure(err);
+              } else {
+                console.warn('[api.js] (tiada withFailureHandler untuk ' + actionName + ')');
+              }
+            });
         };
       }
     };
@@ -153,7 +175,7 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
 
 
   // ────────────────────────────────────────────────────────
-  //  Pasang window.google
+  //  Pasang window.google.script.run
   // ────────────────────────────────────────────────────────
   Object.defineProperty(window, 'google', {
     value: {
@@ -162,8 +184,8 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
           return _buatRunner();
         },
         url: {
-          getScriptUrl: function () { return url; },
-          getActiveUserLocale: function () { return 'ms'; }
+          getScriptUrl         : function () { return url; },
+          getActiveUserLocale  : function () { return 'ms'; }
         },
         history: {
           push   : function () {},
@@ -176,7 +198,7 @@ var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo319
     configurable: true
   });
 
-  console.log('[api.js] ✅ Shim aktif (GET mode — CORS fix)');
+  console.log('[api.js] ✅ JSONP shim aktif');
   console.log('[api.js] 🎯 Endpoint: ' + url);
 
 })(
