@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAZR — Connection Test</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:20px;min-height:100vh;}
+h1{font-size:1.2rem;font-weight:700;margin-bottom:4px;color:#f1f5f9;}
+.sub{font-size:.8rem;color:#64748b;margin-bottom:24px;}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:12px;}
+.row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;}
+.dot-wait{background:#334155;color:#64748b;}
+.dot-run{background:#1d4ed8;animation:pulse .8s infinite;}
+.dot-ok{background:#15803d;color:white;}
+.dot-fail{background:#b91c1c;color:white;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.label{flex:1;}
+.lname{font-size:.85rem;font-weight:600;color:#f1f5f9;}
+.lsub{font-size:.75rem;color:#64748b;margin-top:2px;font-family:monospace;word-break:break-all;}
+.result{font-size:.75rem;color:#94a3b8;margin-top:4px;font-family:monospace;background:#0f172a;padding:6px 10px;border-radius:6px;white-space:pre-wrap;word-break:break-all;}
+.result.ok{color:#4ade80;border-left:3px solid #15803d;}
+.result.fail{color:#f87171;border-left:3px solid #b91c1c;}
+.btn{display:block;width:100%;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.btn:hover{background:#1d4ed8;}
+.btn:disabled{background:#334155;color:#64748b;cursor:not-allowed;}
+.config-val{font-family:monospace;font-size:.75rem;background:#0f172a;padding:8px 12px;border-radius:6px;color:#7dd3fc;word-break:break-all;margin-top:6px;}
+.warn{background:#451a03;border:1px solid #92400e;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#fcd34d;margin-top:8px;line-height:1.6;}
+.good{background:#052e16;border:1px solid #166534;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#4ade80;margin-top:8px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<h1>🔧 SAZR Connection Test</h1>
+<p class="sub">Diagnostic tool — semak semua sambungan satu persatu</p>
+
+<!-- Config Check -->
+<div class="card">
+  <div class="card-title">Konfigurasi semasa</div>
+  <div style="font-size:.78rem;color:#94a3b8;margin-bottom:6px;">PROXY_URL dalam api.js:</div>
+  <div class="config-val" id="show-proxy">Memuatkan...</div>
+  <div id="proxy-warn"></div>
+
+  <div style="font-size:.78rem;color:#94a3b8;margin-bottom:6px;margin-top:14px;">GAS_URL (Apps Script) — isi di sini untuk test langsung:</div>
+  <input id="gas-input" type="text" placeholder="https://script.google.com/macros/s/.../exec"
+    style="width:100%;padding:8px 12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-family:monospace;font-size:.75rem;">
+</div>
+
+<!-- Tests -->
+<div class="card">
+  <div class="card-title">Ujian sambungan</div>
+
+  <div class="row" id="row-proxy">
+    <div class="dot dot-wait" id="dot-proxy">?</div>
+    <div class="label">
+      <div class="lname">1. Cloudflare Worker reachable</div>
+      <div class="lsub" id="lsub-proxy">—</div>
+      <div class="result" id="res-proxy" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="row" id="row-api">
+    <div class="dot dot-wait" id="dot-api">?</div>
+    <div class="label">
+      <div class="lname">2. API call: getPertandinganAktif</div>
+      <div class="lsub" id="lsub-api">—</div>
+      <div class="result" id="res-api" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="row" id="row-direct">
+    <div class="dot dot-wait" id="dot-direct">?</div>
+    <div class="label">
+      <div class="lname">3. Direct GAS fetch (tanpa proxy)</div>
+      <div class="lsub" id="lsub-direct">—</div>
+      <div class="result" id="res-direct" style="display:none"></div>
+    </div>
+  </div>
+
+  <button class="btn" id="btn-run" onclick="runTests()">▶ Jalankan Ujian</button>
+</div>
+
+<!-- Summary -->
+<div class="card" id="summary-card" style="display:none">
+  <div class="card-title">Diagnosis</div>
+  <div id="summary-text"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+var PROXY = typeof PROXY_URL !== 'undefined' ? PROXY_URL : '(tidak dijumpai)';
+var GAS = typeof GAS_URL !== 'undefined' ? GAS_URL : '(tidak dijumpai)';
+
+document.getElementById('show-proxy').textContent = PROXY;
+
+if (PROXY.indexOf('NAMAKAMU') !== -1 || PROXY.indexOf('TUKAR') !== -1) {
+  document.getElementById('proxy-warn').innerHTML =
+    '<div class="warn">⚠️ <b>PROXY_URL belum diubah!</b><br>Buka <code>js/api.js</code> dan tukar nilai PROXY_URL dengan URL Cloudflare Worker anda.<br>Format: <code>https://sazr-proxy.NAMAKAMU.workers.dev</code></div>';
+} else {
+  document.getElementById('proxy-warn').innerHTML =
+    '<div class="good">✓ PROXY_URL sudah diisi</div>';
+}
+
+function setDot(id, state, text) {
+  var d = document.getElementById('dot-' + id);
+  d.className = 'dot dot-' + state;
+  d.textContent = state === 'ok' ? '✓' : state === 'fail' ? '✗' : state === 'run' ? '…' : '?';
+}
+function setSub(id, text) { document.getElementById('lsub-' + id).textContent = text; }
+function setRes(id, text, type) {
+  var el = document.getElementById('res-' + id);
+  el.textContent = text;
+  el.className = 'result ' + (type || '');
+  el.style.display = '';
+}
+
+async function runTests() {
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('summary-card').style.display = 'none';
+
+  var proxyOk = false, apiOk = false, directOk = false;
+  var gasUrl = document.getElementById('gas-input').value.trim() || GAS;
+
+  // Test 1: Ping proxy
+  setDot('proxy', 'run');
+  setSub('proxy', 'Menghantar request ke ' + PROXY + '...');
+  try {
+    var r = await fetch(PROXY, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'getPertandinganAktif', args:[]}),
+      signal: AbortSignal.timeout(10000)
+    });
+    var txt = await r.text();
+    var data;
+    try { data = JSON.parse(txt); } catch(e) { throw new Error('Bukan JSON: ' + txt.substring(0,100)); }
+    if (data.status === 'ERROR') throw new Error(data.mesej || 'Status ERROR dari Worker');
+    setDot('proxy', 'ok');
+    setSub('proxy', 'HTTP ' + r.status + ' — Worker berfungsi');
+    setRes('proxy', JSON.stringify(data).substring(0,300), 'ok');
+    proxyOk = true;
+    apiOk = true;
+  } catch(e) {
+    setDot('proxy', 'fail');
+    setSub('proxy', 'GAGAL');
+    setRes('proxy', e.message, 'fail');
+  }
+
+  // Test 2: Direct GAS (skip if proxy worked for API)
+  setDot('api', proxyOk ? 'ok' : 'wait');
+  if (!proxyOk) { setSub('api', 'Disp skip — proxy gagal'); }
+  else {
+    setSub('api', 'Data diterima dari proxy');
+    setRes('api', 'Lihat result Test 1 — sama API call', 'ok');
+  }
+
+  // Test 3: Direct GAS fetch
+  setDot('direct', 'run');
+  setSub('direct', 'Mencuba direct ke ' + gasUrl + ' ...');
+  if (!gasUrl || gasUrl.indexOf('TUKAR') !== -1) {
+    setDot('direct', 'fail');
+    setSub('direct', 'GAS URL tidak diisi');
+    setRes('direct', 'Isi GAS URL di atas untuk test', 'fail');
+  } else {
+    try {
+      var r2 = await fetch(gasUrl + '?action=ping', {
+        signal: AbortSignal.timeout(8000)
+      });
+      setDot('direct', 'fail');
+      setSub('direct', 'HTTP ' + r2.status + ' tapi CORS blocked (dijangka)');
+      setRes('direct', 'GAS URL betul tapi CORS block — ini normal. Proxy diperlukan.', 'fail');
+    } catch(e2) {
+      if (e2.message.includes('CORS') || e2.message.includes('fetch')) {
+        setDot('direct', 'fail');
+        setSub('direct', 'CORS blocked — dijangka');
+        setRes('direct', 'GAS URL wujud tapi CORS block. Ini NORMAL — sebab itulah proxy diperlukan.', 'fail');
+        directOk = true; // CORS = GAS URL is reachable
+      } else {
+        setDot('direct', 'fail');
+        setSub('direct', e2.message);
+        setRes('direct', 'URL mungkin salah atau GAS tidak di-deploy', 'fail');
+      }
+    }
+  }
+
+  // Summary
+  var s = document.getElementById('summary-text');
+  document.getElementById('summary-card').style.display = '';
+  if (proxyOk) {
+    s.innerHTML = '<div class="good">✅ <b>Semua OK!</b><br>Cloudflare Worker berfungsi dan API berjaya dipanggil.<br>Jika dropdown masih tidak muncul di GitHub Pages, clear cache browser dan reload.</div>';
+  } else if (PROXY.indexOf('NAMAKAMU') !== -1) {
+    s.innerHTML = '<div class="warn">⚠️ <b>PROXY_URL belum diisi</b><br>1. Setup Cloudflare Worker (ikut langkah dalam README)<br>2. Salin URL worker<br>3. Buka <code>js/api.js</code> → tukar PROXY_URL<br>4. Push ke GitHub</div>';
+  } else {
+    s.innerHTML = '<div class="warn">⚠️ <b>Cloudflare Worker tidak respond</b><br>Kemungkinan:<br>• Worker belum di-deploy<br>• GAS_URL dalam Worker environment variables salah<br>• Apps Script doPost() tidak diupdate<br><br>Semak: dash.cloudflare.com → Workers → sazr-proxy → Logs</div>';
+  }
+
+  document.getElementById('btn-run').disabled = false;
+}
+</script>
+</body>
+</html>
