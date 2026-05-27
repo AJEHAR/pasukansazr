@@ -4,7 +4,7 @@
 // ============================================================
 
 // ⚠️  TUKAR BARIS INI — salin URL dari Apps Script → Deploy → Manage deployments
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbyV0uBXZYIprrPMb9LRaeo3198P2Um96-L3xymCYhimzj5uGCIOmzkRHVdXgE8fuuM-lA/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzER-wlKXxXUnnuZHLu8uYiRKeWAKjZc2zFvYusLXBnwC0j1T249ZsoLE8zZZVqimyoRg/exec';
 
 
 // ─── Jangan ubah apa-apa di bawah ─────────────────────────
