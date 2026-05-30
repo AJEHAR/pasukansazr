@@ -192,11 +192,15 @@ a{color:var(--biru);text-decoration:none;transition:var(--trans);}
   font-family:var(--font);font-size:0.8rem;font-weight:600;
   color:var(--g400);cursor:pointer;transition:var(--trans);
   display:flex;align-items:center;justify-content:center;gap:6px;
+  flex-direction:row;
   border-bottom:3px solid transparent;margin-bottom:-2px;
 }
 .tab-nav-btn:hover{color:var(--gelap);background:var(--g50);}
 .tab-nav-btn.aktif{color:var(--biru);border-bottom-color:var(--biru);font-weight:700;background:var(--biru-50);}
 .tab-nav-btn.aktif i{color:var(--biru);}
+/* Desktop: tab-icon/tab-label transparent wrappers */
+.tab-icon{display:contents;}
+.tab-label{}
 
 /* ═══════════════════════════════════════════════
    KANDUNGAN
@@ -567,15 +571,25 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
   .grid-2{grid-template-columns:1fr!important;}
   .stat-mini{grid-template-columns:repeat(2,1fr)!important;}
   .stat-pingat{grid-template-columns:1fr 1fr!important;}
-  .navbar-pas{display:none;}
-  .tab-nav-btn{font-size:0.7rem;padding:12px 4px;}
-  .kandungan{padding:14px 12px 40px;}
   .hero-pasukan{padding:20px;}
   .hero-nama{font-size:1.3rem;}
   .modal-box{max-height:95vh;border-radius:var(--r-xl);}
-  #toast-container{bottom:80px;left:12px;right:12px;}
   .toast{min-width:0;max-width:100%;}
   .akses-grid{grid-template-columns:1fr 1fr;}
+  /* ── Bottom Tab Bar ─────────────────────────── */
+  .tab-nav{position:fixed;bottom:0;left:0;right:0;top:auto;border-top:1px solid var(--g200);border-bottom:none;box-shadow:0 -4px 20px rgba(0,0,0,0.07);padding-bottom:env(safe-area-inset-bottom,0px);z-index:200;}
+  .tab-nav-btn{flex-direction:column;gap:3px;padding:8px 2px 6px;font-size:0.58rem;letter-spacing:0.01em;border-bottom:none!important;}
+  .tab-nav-btn .tab-icon{width:40px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:14px;transition:var(--trans);}
+  .tab-nav-btn .tab-icon i{font-size:1.15rem;line-height:1;}
+  .tab-nav-btn .tab-label{line-height:1;white-space:nowrap;}
+  .tab-nav-btn.aktif{background:none;color:var(--biru);}
+  .tab-nav-btn.aktif .tab-icon{background:var(--biru-50);}
+  .tab-nav-btn.aktif i{color:var(--biru);}
+  .tab-nav-btn:not(.aktif):hover .tab-icon{background:var(--g100);}
+  /* Kandungan padding supaya konten tak tertindih tab bawah */
+  .kandungan{padding:14px 12px 84px;}
+  /* Toast naik atas tab bar */
+  #toast-container{bottom:72px;left:12px;right:12px;}
 }
 @media(min-width:1400px){
   .kandungan{max-width:1100px;padding:28px 24px 56px;}
@@ -814,19 +828,19 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
   <!-- Tab Nav -->
   <div class="tab-nav">
     <button class="tab-nav-btn aktif" id="tab-dashboard" onclick="tukarTab('dashboard',this)">
-      <i class="fa-solid fa-gauge-high"></i> Dashboard
+      <span class="tab-icon"><i class="fa-solid fa-gauge-high"></i></span><span class="tab-label">Dashboard</span>
     </button>
     <button class="tab-nav-btn" id="tab-ahli" onclick="tukarTab('ahli',this)">
-      <i class="fa-solid fa-users"></i> Urus Pasukan
+      <span class="tab-icon"><i class="fa-solid fa-users"></i></span><span class="tab-label">Pasukan</span>
     </button>
     <button class="tab-nav-btn" id="tab-keputusan" onclick="tukarTab('keputusan',this)">
-      <i class="fa-solid fa-medal"></i> Keputusan
+      <span class="tab-icon"><i class="fa-solid fa-medal"></i></span><span class="tab-label">Keputusan</span>
     </button>
     <button class="tab-nav-btn" id="tab-tetapan" onclick="tukarTab('tetapan',this)">
-      <i class="fa-solid fa-key"></i> Kata Laluan
+      <span class="tab-icon"><i class="fa-solid fa-key"></i></span><span class="tab-label">Kata Laluan</span>
     </button>
     <button class="tab-nav-btn" id="tab-teknikal" onclick="tukarTab('teknikal',this);muatBIBPasukan();">
-      <i class="fa-solid fa-print"></i> Cetakan
+      <span class="tab-icon"><i class="fa-solid fa-print"></i></span><span class="tab-label">Cetakan</span>
     </button>
   </div>
 
