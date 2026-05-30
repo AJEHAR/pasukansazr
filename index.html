@@ -181,31 +181,91 @@ a{color:var(--biru);text-decoration:none;transition:var(--trans);}
 /* ═══════════════════════════════════════════════
    TAB NAVIGATION
    ═══════════════════════════════════════════════ */
+/* ── BOTTOM TAB BAR (universal — mobile & desktop) ─ */
 .tab-nav{
-  display:flex;background:var(--putih);
-  border-bottom:2px solid var(--g200);
-  position:sticky;top:var(--nav-h);z-index:90;
-  box-shadow:var(--shadow-xs);
+  background:var(--putih);
+  border-top:1px solid var(--g200);
+  display:flex;
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:200;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.07);
+  padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .tab-nav-btn{
-  flex:1;padding:14px 8px;border:none;background:none;
-  font-family:var(--font);font-size:0.8rem;font-weight:600;
-  color:var(--g400);cursor:pointer;transition:var(--trans);
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  flex-direction:row;
-  border-bottom:3px solid transparent;margin-bottom:-2px;
+  flex:1;padding:8px 2px 6px;border:none;background:none;
+  font-family:var(--font);cursor:pointer;transition:var(--trans);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  -webkit-tap-highlight-color:transparent;
 }
-.tab-nav-btn:hover{color:var(--gelap);background:var(--g50);}
-.tab-nav-btn.aktif{color:var(--biru);border-bottom-color:var(--biru);font-weight:700;background:var(--biru-50);}
-.tab-nav-btn.aktif i{color:var(--biru);}
-/* Desktop: tab-icon/tab-label transparent wrappers */
-.tab-icon{display:contents;}
-.tab-label{}
+.tab-nav-btn .tab-icon{
+  width:40px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:14px;transition:var(--trans);
+}
+.tab-nav-btn .tab-icon i{font-size:1.15rem;line-height:1;color:var(--g400);}
+.tab-nav-btn .tab-label{
+  font-size:0.58rem;color:var(--g400);line-height:1;
+  white-space:nowrap;letter-spacing:0.01em;font-weight:600;
+}
+.tab-nav-btn.aktif .tab-icon{background:var(--biru-50);}
+.tab-nav-btn.aktif .tab-icon i{color:var(--biru);}
+.tab-nav-btn.aktif .tab-label{color:var(--biru);font-weight:700;}
+.tab-nav-btn:not(.aktif):active .tab-icon{background:var(--g100);}
+
+/* ── OVERLAY ────────────────────────────────────── */
+.nav-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0);
+  pointer-events:none;
+  transition:background 0.25s ease;
+  z-index:300;
+}
+.nav-overlay.aktif{background:rgba(0,0,0,0.48);pointer-events:all;}
+
+/* ── BOTTOM SHEET ───────────────────────────────── */
+.bottom-sheet{
+  position:fixed;left:0;right:0;bottom:0;
+  background:var(--putih);
+  border-radius:20px 20px 0 0;
+  border-top:1px solid var(--g200);
+  transform:translateY(100%);
+  transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  z-index:400;
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+  box-shadow:0 -8px 40px rgba(0,0,0,0.14);
+}
+.bottom-sheet.aktif{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--g200);border-radius:2px;margin:10px auto 14px;}
+.sheet-head{
+  font-size:0.82rem;font-weight:700;color:var(--gelap);
+  padding:0 16px 12px;border-bottom:1px solid var(--g100);
+  display:flex;align-items:center;gap:8px;
+}
+.sheet-head i{color:var(--biru);}
+.sheet-item{
+  display:flex;align-items:center;gap:12px;padding:13px 16px;
+  border:none;background:none;width:100%;cursor:pointer;
+  font-family:var(--font);transition:background 0.12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.sheet-item:active{background:var(--g50);}
+.sheet-item.aktif{background:var(--biru-50);}
+.si-icon{
+  width:38px;height:38px;border-radius:11px;background:var(--g100);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:background 0.12s;
+}
+.si-icon i{font-size:1rem;color:var(--g500);}
+.sheet-item.aktif .si-icon{background:#dbeafe;}
+.sheet-item.aktif .si-icon i{color:var(--biru);}
+.si-label{flex:1;text-align:left;font-size:0.88rem;font-weight:600;color:var(--gelap);}
+.sheet-item.aktif .si-label{color:var(--biru);}
+.si-chevron{font-size:0.72rem;color:var(--g300);}
 
 /* ═══════════════════════════════════════════════
    KANDUNGAN
    ═══════════════════════════════════════════════ */
-.kandungan{max-width:960px;margin:0 auto;padding:24px 20px 48px;}
+.kandungan{max-width:960px;margin:0 auto;padding:24px 20px calc(72px + env(safe-area-inset-bottom,0px));}
 
 /* ═══════════════════════════════════════════════
    CARDS
@@ -576,20 +636,10 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
   .modal-box{max-height:95vh;border-radius:var(--r-xl);}
   .toast{min-width:0;max-width:100%;}
   .akses-grid{grid-template-columns:1fr 1fr;}
-  /* ── Bottom Tab Bar ─────────────────────────── */
-  .tab-nav{position:fixed;bottom:0;left:0;right:0;top:auto;border-top:1px solid var(--g200);border-bottom:none;box-shadow:0 -4px 20px rgba(0,0,0,0.07);padding-bottom:env(safe-area-inset-bottom,0px);z-index:200;}
-  .tab-nav-btn{flex-direction:column;gap:3px;padding:8px 2px 6px;font-size:0.58rem;letter-spacing:0.01em;border-bottom:none!important;}
-  .tab-nav-btn .tab-icon{width:40px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:14px;transition:var(--trans);}
-  .tab-nav-btn .tab-icon i{font-size:1.15rem;line-height:1;}
-  .tab-nav-btn .tab-label{line-height:1;white-space:nowrap;}
-  .tab-nav-btn.aktif{background:none;color:var(--biru);}
-  .tab-nav-btn.aktif .tab-icon{background:var(--biru-50);}
-  .tab-nav-btn.aktif i{color:var(--biru);}
-  .tab-nav-btn:not(.aktif):hover .tab-icon{background:var(--g100);}
-  /* Kandungan padding supaya konten tak tertindih tab bawah */
-  .kandungan{padding:14px 12px 84px;}
+  /* Kandungan — mobile padding */
+  .kandungan{padding:14px 12px calc(72px + env(safe-area-inset-bottom,0px));}
   /* Toast naik atas tab bar */
-  #toast-container{bottom:72px;left:12px;right:12px;}
+  #toast-container{bottom:80px;left:12px;right:12px;}
 }
 @media(min-width:1400px){
   .kandungan{max-width:1100px;padding:28px 24px 56px;}
@@ -825,24 +875,29 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
     </div>
   </nav>
 
-  <!-- Tab Nav -->
-  <div class="tab-nav">
-    <button class="tab-nav-btn aktif" id="tab-dashboard" onclick="tukarTab('dashboard',this)">
-      <span class="tab-icon"><i class="fa-solid fa-gauge-high"></i></span><span class="tab-label">Dashboard</span>
+  <!-- Bottom Tab Bar -->
+  <nav class="tab-nav" aria-label="Navigasi utama">
+    <button class="tab-nav-btn aktif" id="tab-dashboard" onclick="tukarTab('dashboard',this)" aria-label="Dashboard">
+      <span class="tab-icon"><i class="fa-solid fa-gauge-high"></i></span>
+      <span class="tab-label">Dashboard</span>
     </button>
-    <button class="tab-nav-btn" id="tab-ahli" onclick="tukarTab('ahli',this)">
-      <span class="tab-icon"><i class="fa-solid fa-users"></i></span><span class="tab-label">Pasukan</span>
+    <button class="tab-nav-btn" id="tab-ahli" onclick="tukarTab('ahli',this)" aria-label="Urus Pasukan">
+      <span class="tab-icon"><i class="fa-solid fa-users"></i></span>
+      <span class="tab-label">Pasukan</span>
     </button>
-    <button class="tab-nav-btn" id="tab-keputusan" onclick="tukarTab('keputusan',this)">
-      <span class="tab-icon"><i class="fa-solid fa-medal"></i></span><span class="tab-label">Keputusan</span>
+    <button class="tab-nav-btn" id="tab-keputusan" onclick="tukarTab('keputusan',this)" aria-label="Keputusan">
+      <span class="tab-icon"><i class="fa-solid fa-medal"></i></span>
+      <span class="tab-label">Keputusan</span>
     </button>
-    <button class="tab-nav-btn" id="tab-tetapan" onclick="tukarTab('tetapan',this)">
-      <span class="tab-icon"><i class="fa-solid fa-key"></i></span><span class="tab-label">Kata Laluan</span>
+    <button class="tab-nav-btn" id="tab-tetapan" onclick="tukarTab('tetapan',this)" aria-label="Kata Laluan">
+      <span class="tab-icon"><i class="fa-solid fa-key"></i></span>
+      <span class="tab-label">Laluan</span>
     </button>
-    <button class="tab-nav-btn" id="tab-teknikal" onclick="tukarTab('teknikal',this);muatBIBPasukan();">
-      <span class="tab-icon"><i class="fa-solid fa-print"></i></span><span class="tab-label">Cetakan</span>
+    <button class="tab-nav-btn" id="tab-teknikal" onclick="tukarTab('teknikal',this)" aria-label="Cetakan">
+      <span class="tab-icon"><i class="fa-solid fa-print"></i></span>
+      <span class="tab-label">Cetakan</span>
     </button>
-  </div>
+  </nav>
 
   <!-- Kandungan -->
   <div class="kandungan">
@@ -889,25 +944,25 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
       <!-- Akses pantas -->
       <div class="akses-grid">
         <div class="akses-item" style="background:linear-gradient(135deg,#6D28D9,#8B5CF6);"
-          onclick="tukarTab('ahli',document.getElementById('tab-ahli'));setTimeout(function(){bukaModalDaftar('PESERTA');},100)">
+          onclick="_navigasiKe('ahli','daftar');setTimeout(function(){bukaModalDaftar('PESERTA');},320)">
           <i class="fa-solid fa-person-running akses-ikon"></i>
           <div class="akses-tajuk">Daftar Peserta</div>
           <div class="akses-sub">Tambah peserta pasukan anda</div>
         </div>
         <div class="akses-item" style="background:linear-gradient(135deg,#065f46,#059669);"
-          onclick="tukarTab('ahli',document.getElementById('tab-ahli'));setTimeout(function(){tukarSubtabUrusPasukan('pegawai',document.getElementById('subtab-pegawai'));bukaModalDaftar('PEGAWAI');},150)">
+          onclick="_navigasiKe('ahli','pegawai');setTimeout(function(){bukaModalDaftar('PEGAWAI');},320)">
           <i class="fa-solid fa-user-tie akses-ikon"></i>
           <div class="akses-tajuk">Daftar Pegawai</div>
           <div class="akses-sub">Tambah pegawai pasukan anda</div>
         </div>
         <div class="akses-item" style="background:linear-gradient(135deg,#0891B2,#06B6D4);"
-          onclick="tukarTab('ahli',document.getElementById('tab-ahli'));tukarSubtabUrusPasukan('acara',null);muatPenyertaan();">
+          onclick="_navigasiKe('ahli','acara');setTimeout(muatPenyertaan,200);">
           <i class="fa-solid fa-list-check akses-ikon"></i>
           <div class="akses-tajuk">Daftar Acara</div>
           <div class="akses-sub">Daftarkan peserta ke acara</div>
         </div>
         <div class="akses-item" style="background:linear-gradient(135deg,#0F766E,#14B8A6);"
-          onclick="tukarTab('ahli',document.getElementById('tab-ahli'));tukarSubtabUrusPasukan('startlist',null);muatStartlist();">
+          onclick="_navigasiKe('ahli','startlist');setTimeout(muatStartlist,200);">
           <i class="fa-solid fa-list-ol akses-ikon"></i>
           <div class="akses-tajuk">Startlist / Giliran</div>
           <div class="akses-sub">Lihat jadual giliran peserta</div>
@@ -924,7 +979,7 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
       <div class="kad">
         <div class="kad-kepala">
           <div class="kad-kepala-tajuk"><i class="fa-solid fa-users" style="color:var(--ungu)"></i> Senarai Ahli Terkini</div>
-          <button onclick="tukarTab('ahli',document.getElementById('tab-ahli'));tukarSubtabUrusPasukan('daftar',null);" class="btn btn-secondary btn-sm">Lihat Semua →</button>
+          <button onclick="_navigasiKe('ahli','daftar');" class="btn btn-secondary btn-sm">Lihat Semua →</button>
         </div>
         <div style="padding:12px 20px;" id="ahli-ringkas">
           <div style="text-align:center;padding:20px;color:var(--g400);"><div class="spinner spinner-biru" style="margin:0 auto 10px;"></div>Memuatkan...</div>
@@ -937,21 +992,7 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
     <!-- URUS PASUKAN (gabungan: Daftar Peserta + Daftar Acara + Startlist) -->
     <div id="page-ahli" class="view">
 
-      <!-- Sub-tab pill -->
-      <div class="teknikal-subtab" id="urus-pasukan-subtab">
-        <button class="teknikal-subtab-btn aktif" id="subtab-daftar" onclick="tukarSubtabUrusPasukan('daftar',this)">
-          <i class="fa-solid fa-person-running"></i> Daftar Peserta
-        </button>
-        <button class="teknikal-subtab-btn" id="subtab-pegawai" onclick="tukarSubtabUrusPasukan('pegawai',this)">
-          <i class="fa-solid fa-user-tie"></i> Daftar Pegawai
-        </button>
-        <button class="teknikal-subtab-btn" id="subtab-acara" onclick="tukarSubtabUrusPasukan('acara',this);muatPenyertaan();">
-          <i class="fa-solid fa-list-check"></i> Daftar Acara
-        </button>
-        <button class="teknikal-subtab-btn" id="subtab-startlist" onclick="tukarSubtabUrusPasukan('startlist',this);muatStartlist();">
-          <i class="fa-solid fa-list-ol"></i> Startlist
-        </button>
-      </div>
+
 
       <!-- ══ SUB: DAFTAR PESERTA ══ -->
       <div id="urus-panel-daftar" class="teknikal-panel aktif">
@@ -1297,18 +1338,7 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
         </div>
       </div>
 
-      <!-- Sub-tab pill -->
-      <div class="teknikal-subtab" id="cetakan-subtab">
-        <button class="teknikal-subtab-btn aktif" id="subtab-bib" onclick="tukarSubtabTeknikal('bib',this)">
-          <i class="fa-solid fa-id-card"></i> Jana BIB
-        </button>
-        <button class="teknikal-subtab-btn" id="subtab-senarai-peserta" onclick="tukarSubtabTeknikal('senarai-peserta',this);muatSenaraiPesertaCetakan();">
-          <i class="fa-solid fa-list"></i> Senarai Peserta
-        </button>
-        <button class="teknikal-subtab-btn" id="subtab-jadual" onclick="tukarSubtabTeknikal('jadual',this);muatJadualPasukan();">
-          <i class="fa-solid fa-calendar-days"></i> Jadual
-        </button>
-      </div>
+
 
       <!-- ═══ PANEL: JANA BIB ═══ -->
       <div id="teknikal-panel-bib" class="teknikal-panel aktif">
@@ -1944,29 +1974,74 @@ function masukApp(){
 }
 
 // ── TUKAR TAB ─────────────────────────────────────────────────
-function tukarTab(tab,btn){
-  document.querySelectorAll('.tab-nav-btn').forEach(function(b){b.classList.remove('aktif');});
-  if(btn)btn.classList.add('aktif');
-  // ✅ Selector betul — .view adalah anak terus .kandungan
-  document.querySelectorAll('.kandungan > .view').forEach(function(el){el.classList.remove('aktif');});
-  const el=document.getElementById('page-'+tab);if(el)el.classList.add('aktif');
+// Tab dengan sub-nav → buka bottom sheet
+// Tab biasa → terus masuk
+function tukarTab(tab, btn) {
+  var curAktif = document.querySelector('.tab-nav-btn.aktif');
+  var samaTab = curAktif && curAktif.id === 'tab-' + tab;
+  if (tab === 'ahli') {
+    _setTabAktif('ahli');
+    bukaSheet('ahli');
+    return;
+  }
+  if (tab === 'teknikal') {
+    _setTabAktif('teknikal');
+    bukaSheet('teknikal');
+    return;
+  }
+  _setTabAktif(tab);
 }
 
-// ── TUKAR SUB-TAB: URUS PASUKAN ───────────────────────────────
-function tukarSubtabUrusPasukan(panel,btn){
-  // Kemas kini butang aktif
-  document.querySelectorAll('#urus-pasukan-subtab .teknikal-subtab-btn').forEach(function(b){b.classList.remove('aktif');});
-  if(btn)btn.classList.add('aktif');
-  else {
-    // Jika dipanggil tanpa btn (cth: dari dashboard), set ikut panel
-    var m={'daftar':'subtab-daftar','pegawai':'subtab-pegawai','acara':'subtab-acara','startlist':'subtab-startlist'};
-    var el=document.getElementById(m[panel]);
-    if(el)el.classList.add('aktif');
-  }
-  // Papar panel berkenaan
-  document.querySelectorAll('#page-ahli .teknikal-panel').forEach(function(p){p.classList.remove('aktif');});
-  var panelEl=document.getElementById('urus-panel-'+panel);
-  if(panelEl)panelEl.classList.add('aktif');
+function _setTabAktif(tab) {
+  document.querySelectorAll('.tab-nav-btn').forEach(function(b){ b.classList.remove('aktif'); });
+  var tabBtn = document.getElementById('tab-' + tab);
+  if (tabBtn) tabBtn.classList.add('aktif');
+  document.querySelectorAll('.kandungan > .view').forEach(function(el){ el.classList.remove('aktif'); });
+  var el = document.getElementById('page-' + tab);
+  if (el) el.classList.add('aktif');
+}
+
+// ── BOTTOM SHEET ───────────────────────────────────────────────
+function bukaSheet(jenis) {
+  document.getElementById('nav-overlay').classList.add('aktif');
+  document.getElementById('sheet-' + jenis).classList.add('aktif');
+}
+
+function tutupSheet() {
+  document.getElementById('nav-overlay').classList.remove('aktif');
+  document.querySelectorAll('.bottom-sheet').forEach(function(s){ s.classList.remove('aktif'); });
+}
+
+function pilihSubPasukan(panel) {
+  document.querySelectorAll('#sheet-ahli .sheet-item').forEach(function(i){ i.classList.remove('aktif'); });
+  var si = document.getElementById('si-pasukan-' + panel);
+  if (si) si.classList.add('aktif');
+  document.querySelectorAll('#page-ahli .teknikal-panel').forEach(function(p){ p.classList.remove('aktif'); });
+  var panelEl = document.getElementById('urus-panel-' + panel);
+  if (panelEl) panelEl.classList.add('aktif');
+  setTimeout(tutupSheet, 180);
+}
+
+function pilihSubCetakan(panel) {
+  document.querySelectorAll('#sheet-teknikal .sheet-item').forEach(function(i){ i.classList.remove('aktif'); });
+  var si = document.getElementById('si-cetak-' + panel);
+  if (si) si.classList.add('aktif');
+  document.querySelectorAll('#page-teknikal .teknikal-panel').forEach(function(p){ p.classList.remove('aktif'); });
+  var panelEl = document.getElementById('teknikal-panel-' + panel);
+  if (panelEl) panelEl.classList.add('aktif');
+  setTimeout(tutupSheet, 180);
+}
+
+// Helper: navigasi terus ke tab + sub-panel tanpa sheet (dari dashboard)
+function _navigasiKe(tab, panel) {
+  _setTabAktif(tab);
+  if (tab === 'ahli') pilihSubPasukan(panel);
+  if (tab === 'teknikal') pilihSubCetakan(panel);
+}
+
+// ── TUKAR SUB-TAB: URUS PASUKAN (legacy compat) ───────────────
+function tukarSubtabUrusPasukan(panel, btn) {
+  _navigasiKe('ahli', panel);
 }
 
 // ── LOGOUT ────────────────────────────────────────────────────
@@ -3417,7 +3492,69 @@ function cetakSenaraiPeserta() {
       '<span><strong>Tarikh Pertandingan:</strong> ' + tarikhMula + '</span>' +
     '</div>' +
     kategoriHTML +
-    '</body></html>';
+    '</body>
+  <!-- ══ OVERLAY ══════════════════════════════════════════════ -->
+  <div class="nav-overlay" id="nav-overlay" onclick="tutupSheet()"></div>
+
+  <!-- ══ BOTTOM SHEET: URUS PASUKAN ═══════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-ahli" role="dialog" aria-modal="true" aria-label="Urus Pasukan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-users"></i> Urus Pasukan
+    </div>
+    <button class="sheet-item aktif" id="si-pasukan-daftar"
+      onclick="pilihSubPasukan('daftar')">
+      <span class="si-icon"><i class="fa-solid fa-person-running"></i></span>
+      <span class="si-label">Daftar Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-pegawai"
+      onclick="pilihSubPasukan('pegawai')">
+      <span class="si-icon"><i class="fa-solid fa-user-tie"></i></span>
+      <span class="si-label">Daftar Pegawai</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-acara"
+      onclick="pilihSubPasukan('acara');muatPenyertaan();">
+      <span class="si-icon"><i class="fa-solid fa-list-check"></i></span>
+      <span class="si-label">Daftar Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-startlist"
+      onclick="pilihSubPasukan('startlist');muatStartlist();">
+      <span class="si-icon"><i class="fa-solid fa-list-ol"></i></span>
+      <span class="si-label">Startlist / Giliran</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
+
+  <!-- ══ BOTTOM SHEET: CETAKAN ═════════════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-teknikal" role="dialog" aria-modal="true" aria-label="Cetakan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-print"></i> Cetakan
+    </div>
+    <button class="sheet-item aktif" id="si-cetak-bib"
+      onclick="pilihSubCetakan('bib');muatBIBPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-id-card"></i></span>
+      <span class="si-label">Jana BIB</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-senarai-peserta"
+      onclick="pilihSubCetakan('senarai-peserta');muatSenaraiPesertaCetakan();">
+      <span class="si-icon"><i class="fa-solid fa-list"></i></span>
+      <span class="si-label">Senarai Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-jadual"
+      onclick="pilihSubCetakan('jadual');muatJadualPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-calendar-days"></i></span>
+      <span class="si-label">Jadual Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
+
+</html>';
 
   var win = window.open('', '_blank');
   if (!win) { tunjukToast('Popup disekat! Sila benarkan popup untuk laman ini.', 'warning'); return; }
@@ -3800,13 +3937,9 @@ function _togStartlistAcara(headEl){
   if(ikon)ikon.style.transform=buka?'rotate(-90deg)':'rotate(0deg)';
 }
 
-// ══ TEKNIKAL — SUB-TAB ════════════════════════════════════════
-function tukarSubtabTeknikal(panel,btn){
-  document.querySelectorAll('.teknikal-subtab-btn').forEach(function(b){b.classList.remove('aktif');});
-  if(btn)btn.classList.add('aktif');
-  document.querySelectorAll('.teknikal-panel').forEach(function(p){p.classList.remove('aktif');});
-  var el=document.getElementById('teknikal-panel-'+panel);
-  if(el)el.classList.add('aktif');
+// ══ TEKNIKAL — SUB-TAB (legacy compat) ═══════════════════════
+function tukarSubtabTeknikal(panel, btn) {
+  _navigasiKe('teknikal', panel);
 }
 
 // ══ JANA BIB PASUKAN ══════════════════════════════════════════
@@ -4544,7 +4677,69 @@ function cetakJadualPasukan(orientasi) {
       '<span class="tb-info">'+_JADUAL_PAS_FILTER.length+' acara &bull; '+tarikhSorted.length+' hari &bull; '+_cjpEsc(namaPasukan)+'</span>'+
     '</div>'+
     pages+
-    '</body></html>';
+    '</body>
+  <!-- ══ OVERLAY ══════════════════════════════════════════════ -->
+  <div class="nav-overlay" id="nav-overlay" onclick="tutupSheet()"></div>
+
+  <!-- ══ BOTTOM SHEET: URUS PASUKAN ═══════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-ahli" role="dialog" aria-modal="true" aria-label="Urus Pasukan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-users"></i> Urus Pasukan
+    </div>
+    <button class="sheet-item aktif" id="si-pasukan-daftar"
+      onclick="pilihSubPasukan('daftar')">
+      <span class="si-icon"><i class="fa-solid fa-person-running"></i></span>
+      <span class="si-label">Daftar Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-pegawai"
+      onclick="pilihSubPasukan('pegawai')">
+      <span class="si-icon"><i class="fa-solid fa-user-tie"></i></span>
+      <span class="si-label">Daftar Pegawai</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-acara"
+      onclick="pilihSubPasukan('acara');muatPenyertaan();">
+      <span class="si-icon"><i class="fa-solid fa-list-check"></i></span>
+      <span class="si-label">Daftar Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-startlist"
+      onclick="pilihSubPasukan('startlist');muatStartlist();">
+      <span class="si-icon"><i class="fa-solid fa-list-ol"></i></span>
+      <span class="si-label">Startlist / Giliran</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
+
+  <!-- ══ BOTTOM SHEET: CETAKAN ═════════════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-teknikal" role="dialog" aria-modal="true" aria-label="Cetakan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-print"></i> Cetakan
+    </div>
+    <button class="sheet-item aktif" id="si-cetak-bib"
+      onclick="pilihSubCetakan('bib');muatBIBPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-id-card"></i></span>
+      <span class="si-label">Jana BIB</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-senarai-peserta"
+      onclick="pilihSubCetakan('senarai-peserta');muatSenaraiPesertaCetakan();">
+      <span class="si-icon"><i class="fa-solid fa-list"></i></span>
+      <span class="si-label">Senarai Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-jadual"
+      onclick="pilihSubCetakan('jadual');muatJadualPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-calendar-days"></i></span>
+      <span class="si-label">Jadual Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
+
+</html>';
 
   var win = window.open('','_blank');
   if (!win) { tunjukToast('Popup disekat! Sila benarkan popup.','warning'); return; }
@@ -4553,5 +4748,67 @@ function cetakJadualPasukan(orientasi) {
   tunjukToast('Menjana jadual '+orientasi+' — '+_JADUAL_PAS_FILTER.length+' acara...','ok');
 }
 </script>
+
+
+  <!-- ══ OVERLAY ══════════════════════════════════════════════ -->
+  <div class="nav-overlay" id="nav-overlay" onclick="tutupSheet()"></div>
+
+  <!-- ══ BOTTOM SHEET: URUS PASUKAN ═══════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-ahli" role="dialog" aria-modal="true" aria-label="Urus Pasukan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-users"></i> Urus Pasukan
+    </div>
+    <button class="sheet-item aktif" id="si-pasukan-daftar"
+      onclick="pilihSubPasukan('daftar')">
+      <span class="si-icon"><i class="fa-solid fa-person-running"></i></span>
+      <span class="si-label">Daftar Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-pegawai"
+      onclick="pilihSubPasukan('pegawai')">
+      <span class="si-icon"><i class="fa-solid fa-user-tie"></i></span>
+      <span class="si-label">Daftar Pegawai</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-acara"
+      onclick="pilihSubPasukan('acara');muatPenyertaan();">
+      <span class="si-icon"><i class="fa-solid fa-list-check"></i></span>
+      <span class="si-label">Daftar Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-pasukan-startlist"
+      onclick="pilihSubPasukan('startlist');muatStartlist();">
+      <span class="si-icon"><i class="fa-solid fa-list-ol"></i></span>
+      <span class="si-label">Startlist / Giliran</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
+
+  <!-- ══ BOTTOM SHEET: CETAKAN ═════════════════════════════════ -->
+  <div class="bottom-sheet" id="sheet-teknikal" role="dialog" aria-modal="true" aria-label="Cetakan">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <i class="fa-solid fa-print"></i> Cetakan
+    </div>
+    <button class="sheet-item aktif" id="si-cetak-bib"
+      onclick="pilihSubCetakan('bib');muatBIBPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-id-card"></i></span>
+      <span class="si-label">Jana BIB</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-senarai-peserta"
+      onclick="pilihSubCetakan('senarai-peserta');muatSenaraiPesertaCetakan();">
+      <span class="si-icon"><i class="fa-solid fa-list"></i></span>
+      <span class="si-label">Senarai Peserta</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+    <button class="sheet-item" id="si-cetak-jadual"
+      onclick="pilihSubCetakan('jadual');muatJadualPasukan();">
+      <span class="si-icon"><i class="fa-solid fa-calendar-days"></i></span>
+      <span class="si-label">Jadual Acara</span>
+      <i class="fa-solid fa-chevron-right si-chevron"></i>
+    </button>
+  </div>
 
 </html>
