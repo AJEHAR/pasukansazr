@@ -1730,12 +1730,60 @@ select.input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 <div id="toast-container"></div>
 <div id="overlay" class="overlay" style="display:none;"><div class="spinner spinner-biru" style="width:40px;height:40px;border-width:4px;"></div><span id="overlay-teks">Memuat...</span></div>
 
-
-<!-- FASA 2: api.js shim — gantikan google.script.run dengan fetch() -->
-<!-- Tukar GAS_URL dalam js/api.js dengan URL deployment Apps Script anda -->
-<script src="js/api.js?v=1.0"></script>
-
 <script>
+// ============================================================
+//  KONFIGURASI — SAZR GitHub Pages Frontend
+// ============================================================
+
+// ⚠ WAJIB: Tampal URL deployment GAS anda di sini
+// Cara dapatkan URL:
+//   GAS Editor → Deploy → Manage Deployments → salin Web App URL
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzER-wlKXxXUnnuZHLu8uYiRKeWAKjZc2zFvYusLXBnwC0j1T249ZsoLE8zZZVqimyoRg/exec';
+
+// ============================================================
+//  SHIM: Meniru google.script.run menggunakan fetch()
+//  Kod ini menggantikan bridge GAS yang hanya wujud dalam
+//  persekitaran GAS. Semua google.script.run akan dihantar
+//  ke GAS melalui HTTP POST — tiada perubahan lain diperlukan.
+// ============================================================
+const google = {
+  script: {
+    run: _buatGASProxy(null, null)
+  }
+};
+
+function _buatGASProxy(successFn, failureFn) {
+  var _s = successFn;
+  var _f = failureFn;
+  var handler = {
+    withSuccessHandler: function(fn) { return _buatGASProxy(fn, _f); },
+    withFailureHandler: function(fn) { return _buatGASProxy(_s, fn); }
+  };
+  return new Proxy(handler, {
+    get: function(target, prop) {
+      if (prop in target) return target[prop];
+      // prop = nama fungsi GAS (cth: prosesLogin, dbPesertaByPasukan)
+      return function() {
+        var args = Array.from(arguments);
+        fetch(GAS_URL, {
+          method : 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body   : JSON.stringify({ action: prop, payload: args })
+        })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(data) { if (_s) _s(data); })
+        .catch(function(e) {
+          console.error('[SAZR GAS] ' + prop + '() ralat:', e.message);
+          if (_f) _f(e);
+        });
+      };
+    }
+  });
+}
+
 // ── TOKEN ─────────────────────────────────────────────────────
 const TK='sazr_pasukan_token';
 // ✅ Dual storage — memory + sessionStorage (sama seperti admin)
